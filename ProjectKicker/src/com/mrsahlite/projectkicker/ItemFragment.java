@@ -14,7 +14,11 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
@@ -22,10 +26,9 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.mrsahlite.projectkicker.ActivityProjectKicker.OnUpdateListener;
 import com.mrsahlite.projectkicker.ProjectDBContract.ProjectItems;
 
-public class ItemFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>, OnUpdateListener{
+public class ItemFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
 	public static final String TAG = "Item detail";
 	
 	public static final String ARG_PARENT_POSITION = "project id";
@@ -220,6 +223,24 @@ public class ItemFragment extends Fragment implements LoaderManager.LoaderCallba
 	}
 
 	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		// TODO Auto-generated method stub
+		menu.clear();
+		MenuItem item = menu.add(getString(R.string.update));
+		item.setShowAsAction(MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		item.setOnMenuItemClickListener(new OnMenuItemClickListener(){
+
+			@Override
+			public boolean onMenuItemClick(MenuItem item) {
+				// TODO Auto-generated method stub
+				update();
+				return true;
+			}
+		 
+		});
+	}
+
+	@Override
 	public void onSaveInstanceState(Bundle outState) {
 		// TODO Auto-generated method stub
 		super.onSaveInstanceState(outState);
@@ -286,9 +307,7 @@ public class ItemFragment extends Fragment implements LoaderManager.LoaderCallba
     	mFinished.setChecked(false);
 	}
 
-	@Override
 	public void update() {
-		// TODO Auto-generated method stub
 		ContentValues values = new ContentValues();
 		values.put(ProjectItems.COLUMN_NAME_PROJECT, mProjectID);
 		values.put(ProjectItems.COLUMN_NAME_ITEM, mName.getText().toString());
@@ -306,6 +325,7 @@ public class ItemFragment extends Fragment implements LoaderManager.LoaderCallba
 
 		}else{
 			getActivity().getContentResolver().insert(ProjectItems.CONTENT_URI, values);
+			mAction = ACTION_READ;
 		}
 	}
 

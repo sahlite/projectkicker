@@ -1,6 +1,7 @@
 package com.mrsahlite.projectkicker;
 
 import android.app.Activity;
+import android.content.ContentUris;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -9,27 +10,50 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
-import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ListView;
 import android.widget.SearchView.OnQueryTextListener;
 
+import com.mrsahlite.projectkicker.DeletePromptFragment.OnDeletePromptListener;
 import com.mrsahlite.projectkicker.ProjectDBContract.Projects;
 
 
 public class ProjectsListFragment extends ListFragment 
-			implements OnQueryTextListener, LoaderManager.LoaderCallbacks<Cursor> {
+			implements OnQueryTextListener, LoaderManager.LoaderCallbacks<Cursor>, 
+						OnItemLongClickListener, OnDeletePromptListener{
 	
 	public static final String TAG = "Projects List";
+	
+	public interface OnProjectsListItemClickListener{
+		void onProjectsListItemClick(long id);
+		void onProjectCreate();
+	}
 	 // This is the Adapter being used to display the list's data.
     SimpleCursorAdapter mAdapter;
 
 //    // If non-null, this is the current filter the user has provided.
 //    String mCurFilter;
     
-    OnItemClickListener mCallback;
+    OnProjectsListItemClickListener mCallback;
+    
+    long delete_id;
 
-    @Override public void onActivityCreated(Bundle savedInstanceState) {
+    @Override
+	public void onCreate(Bundle savedInstanceState) {
+		// TODO Auto-generated method stub
+		super.onCreate(savedInstanceState);
+		
+		// We have a menu item to show in action bar.
+        setHasOptionsMenu(true);
+	}
+
+	@Override public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
         // Give some text to display if there is no data.  In a real
@@ -49,19 +73,29 @@ public class ProjectsListFragment extends ListFragment
         // Prepare the loader.  Either re-connect with an existing one,
         // or start a new one.
         getLoaderManager().initLoader(0, null, this);
+        
+        getListView().setOnItemLongClickListener(this);
     }
 
-//    @Override public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-//        // Place an action bar item for searching.
-//        MenuItem item = menu.add("Search");
+    @Override public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        // Place an action bar item for searching.
+    	menu.clear();
+        MenuItem item = menu.add(getString(R.string.create));
 //        item.setIcon(android.R.drawable.ic_menu_search);
-//        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-//        SearchView sv = new SearchView(getActivity());
-//        sv.setOnQueryTextListener(this);
-//        item.setActionView(sv);
-//    }
+        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+        item.setOnMenuItemClickListener(new OnMenuItemClickListener(){
 
-    public boolean onQueryTextChange(String newText) {
+			@Override
+			public boolean onMenuItemClick(MenuItem arg0) {
+				// TODO Auto-generated method stub
+				mCallback.onProjectCreate();
+				return true;
+			}
+        	
+        });
+    }
+
+	public boolean onQueryTextChange(String newText) {
         // Called when the action bar search text has changed.  Update
         // the search filter, and restart the loader to do a new query
         // with this filter.
@@ -82,7 +116,7 @@ public class ProjectsListFragment extends ListFragment
         // This makes sure that the container activity has implemented
         // the callback interface. If not, it throws an exception.
         try {
-            mCallback = (OnItemClickListener) activity;
+            mCallback = (OnProjectsListItemClickListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnItemClickListener");
@@ -92,7 +126,7 @@ public class ProjectsListFragment extends ListFragment
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
         // Notify the parent activity of selected item
-        mCallback.onItemClick(l, v, position, id);
+        mCallback.onProjectsListItemClick(id);
         
         // Set the item as checked to be highlighted when in two-pane layout
         getListView().setItemChecked(position, true);
@@ -128,4 +162,29 @@ public class ProjectsListFragment extends ListFragment
         // longer using it.
         mAdapter.swapCursor(null);
     }
+
+	@Override
+	public boolean onItemLongClick(AdapterView<?> adpeter, View view, int position,
+			long id) {
+		// TODO Auto-generated method stub
+		delete_id = id;
+		DeletePromptFragment prompt = new DeletePromptFragment();
+		prompt.setCallback(this);
+		prompt.show(getActivity().getSupportFragmentManager(), getString(R.string.delete_prompt));
+		
+		return true;
+	}
+
+	@Override
+	public void onPositiveClick() {
+		// TODO Auto-generated method stub
+		Uri uri = ContentUris.withAppendedId(Projects.CONTENT_ID_URI_BASE, delete_id);
+		getActivity().getContentResolver().delete(uri, null, null);
+	}
+
+	@Override
+	public void onNegativeClick() {
+		// TODO Auto-generated method stub
+		
+	}
 }

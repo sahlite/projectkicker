@@ -16,21 +16,29 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import com.mrsahlite.projectkicker.ActivityProjectKicker.OnUpdateListener;
+import com.mrsahlite.projectkicker.DeletePromptFragment.OnDeletePromptListener;
 import com.mrsahlite.projectkicker.ProjectDBContract.ProjectItems;
 import com.mrsahlite.projectkicker.ProjectDBContract.Projects;
 
-public class ProjectFragment extends Fragment implements OnUpdateListener{
+public class ProjectFragment extends Fragment 
+							implements OnItemClickListener, OnItemLongClickListener, 
+										OnDeletePromptListener{
 
 	public static final String TAG = "Project detail";
 	
@@ -39,6 +47,11 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
 	
 	public static final int ACTION_INSERT = 0;
 	public static final int ACTION_READ = 1;
+	
+	public interface OnProjectItemClickListener{
+		void onProjectItemClick(long id);
+		void onProjectItemCreate();
+	}
 	// This is the Adapter being used to display the list's data.
     SimpleCursorAdapter mAdapter;
     
@@ -57,7 +70,8 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
 	
 	private long mCurrentPosition = -1;
 	private int mAction = -1;
-	private OnItemClickListener mCallback = null;
+	private OnProjectItemClickListener mCallback = null;
+	private long delete_id = -1;
 	
 	private OnDateSetListener mStartDateOnDateSetListener = new OnDateSetListener(){
 
@@ -179,7 +193,7 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
 	                new int[] { R.id.tvItemsName, R.id.tvItemsExpectEndDate, R.id.tvItemsFinished }, 0);
         
 		mItemsList.setAdapter(mAdapter);
-		mItemsList.setOnItemClickListener(mCallback);
+		mItemsList.setOnItemClickListener(this);
 		return root;
 	}
 	
@@ -226,6 +240,36 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
 	
 	
 	 @Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		// TODO Auto-generated method stub
+		 menu.clear();
+		 MenuItem item = menu.add(getString(R.string.create));
+//	        item.setIcon(android.R.drawable.ic_menu_search);
+		 item.setShowAsAction(MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		 item.setOnMenuItemClickListener(new OnMenuItemClickListener(){
+
+			@Override
+			public boolean onMenuItemClick(MenuItem arg0) {
+				// TODO Auto-generated method stub
+				mCallback.onProjectItemCreate();
+				return true;
+			}
+		 });
+		 item = menu.add(getString(R.string.update));
+		 item.setShowAsAction(MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+		 item.setOnMenuItemClickListener(new OnMenuItemClickListener(){
+
+			@Override
+			public boolean onMenuItemClick(MenuItem item) {
+				// TODO Auto-generated method stub
+				update();
+				return true;
+			}
+			 
+		 });
+	}
+
+	@Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
 
@@ -233,7 +277,7 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
         // the callback interface. If not, it throws an exception.
         try {
 //            mCallback = (OnItemClickListener) activity;
-        	mCallback = (OnItemClickListener)activity;
+        	mCallback = (OnProjectItemClickListener)activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnItemClickListener");
@@ -368,9 +412,7 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
 		
 	}
 
-	@Override
 	public void update() {
-		// TODO Auto-generated method stub
 		ContentValues values = new ContentValues();
 		values.put(Projects.COLUMN_NAME_PROJECT, mName.getText().toString());
 		values.put(Projects.COLUMN_NAME_DESCRIPTION, mDescription.getText().toString());
@@ -387,8 +429,39 @@ public class ProjectFragment extends Fragment implements OnUpdateListener{
 
 		}else{
 			getActivity().getContentResolver().insert(Projects.CONTENT_URI, values);
+			mAction = ACTION_READ;
 		}
 
+	}
+
+	@Override
+	public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
+		// TODO Auto-generated method stub
+		mCallback.onProjectItemClick(id);
+	}
+
+	@Override
+	public boolean onItemLongClick(AdapterView<?> adapter, View view, int position,
+			long id) {
+		// TODO Auto-generated method stub
+		delete_id = id;
+		DeletePromptFragment prompt = new DeletePromptFragment();
+		prompt.setCallback(this);
+		prompt.show(getActivity().getSupportFragmentManager(), getString(R.string.delete_prompt));
+		return true;
+	}
+
+	@Override
+	public void onPositiveClick() {
+		// TODO Auto-generated method stub
+		Uri uri = ContentUris.withAppendedId(ProjectItems.CONTENT_ID_URI_BASE, delete_id);
+		getActivity().getContentResolver().delete(uri, null, null);
+	}
+
+	@Override
+	public void onNegativeClick() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

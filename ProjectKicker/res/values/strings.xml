@@ -13,5 +13,8 @@
     <string name="default_time">16:26</string>
     <string name="default_name">none</string>
     <string name="default_empty"/>
+    <string name="delete_prompt">Are you sure to delete?</string>
+    <string name="yes">yes</string>
+    <string name="no">no</string>
 
 </resources>
